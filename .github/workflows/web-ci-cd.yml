@@ -123,7 +123,6 @@ jobs:
             sudo ln -sfn "${REL}" "${CUR}"
             sudo rm -rf "${STAGE}" || true
 
-            # smoke: attendre index + env.js
             for i in {1..30}; do
               curl --http1.1 -fsS "https://${DOMAIN}/" >/dev/null 2>&1 && \
               curl --http1.1 -fsS "https://${DOMAIN}/env.js" >/dev/null 2>&1 && break
