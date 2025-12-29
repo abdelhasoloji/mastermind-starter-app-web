@@ -20,8 +20,6 @@ const App = () => {
   <QueryClientProvider client={queryClient}>
     <div style={{ position: "fixed", top: 12, right: 12, zIndex: 9999, fontSize: 12, opacity: 0.9 }}>
       <span style={{ padding: "6px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.15)" }}>
-        Supabase: {env.supabaseUrl}
-      </span>
     </div>
     <TooltipProvider>
       <Toaster />
