@@ -119,4 +119,4 @@ jobs:
             sudo ln -sfn "${REL}" "${CUR}"
             sudo rm -rf "${STAGE}" || true
 
-            curl -fsS "https://${DOMAIN}/" >/dev/null
+            curl --http1.1 -fsS "https://${DOMAIN}/" >/dev/null
