@@ -1,10 +1,15 @@
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
-import { Menu } from "lucide-react";
+import { Menu, LogOut, User } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const navLinks = [
     { label: "Fonctionnalités", href: "#features" },
@@ -12,6 +17,12 @@ const Navbar = () => {
     { label: "Tarifs", href: "#pricing" },
     { label: "Contact", href: "#contact" },
   ];
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Déconnexion réussie");
+    navigate("/");
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -33,12 +44,33 @@ const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm">
-              Connexion
-            </Button>
-            <Button variant="hero" size="sm">
-              Démarrer
-            </Button>
+            {user ? (
+              <>
+                <Link to="/dashboard">
+                  <Button variant="ghost" size="sm">
+                    <User className="w-4 h-4 mr-2" />
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Déconnexion
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/auth">
+                  <Button variant="ghost" size="sm">
+                    Connexion
+                  </Button>
+                </Link>
+                <Link to="/auth">
+                  <Button variant="hero" size="sm">
+                    Démarrer
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -66,12 +98,33 @@ const Navbar = () => {
                 </a>
               ))}
               <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
-                <Button variant="ghost" className="w-full justify-start">
-                  Connexion
-                </Button>
-                <Button variant="hero" className="w-full">
-                  Démarrer
-                </Button>
+                {user ? (
+                  <>
+                    <Link to="/dashboard">
+                      <Button variant="ghost" className="w-full justify-start">
+                        <User className="w-4 h-4 mr-2" />
+                        Dashboard
+                      </Button>
+                    </Link>
+                    <Button variant="ghost" className="w-full justify-start" onClick={handleSignOut}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Déconnexion
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/auth">
+                      <Button variant="ghost" className="w-full justify-start">
+                        Connexion
+                      </Button>
+                    </Link>
+                    <Link to="/auth">
+                      <Button variant="hero" className="w-full">
+                        Démarrer
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
