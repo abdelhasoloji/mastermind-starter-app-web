@@ -2,7 +2,7 @@ name: web-ci-cd
 
 on:
   push:
-    branches: ["dev"]
+    branches: ["main","dev"]
   workflow_dispatch:
     inputs:
       target_env:
