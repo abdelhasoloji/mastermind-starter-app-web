@@ -106,7 +106,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Button variant="heroOutline" className="h-auto py-4 flex-col gap-2">
+              <Button variant="heroOutline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate("/consultation")}>
                 <MessageSquare className="w-5 h-5" />
                 <span>Nouvelle consultation IA</span>
               </Button>

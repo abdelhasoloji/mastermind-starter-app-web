@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Consultation from "./pages/Consultation";
 import NotFound from "./pages/NotFound";
 import { SupabaseHealthWidget } from "@/shared/supabase/widget";
 
@@ -29,6 +30,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/consultation"
+              element={
+                <ProtectedRoute>
+                  <Consultation />
                 </ProtectedRoute>
               }
             />
