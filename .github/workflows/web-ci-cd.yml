@@ -2,7 +2,7 @@ name: web-ci-cd
 
 on:
   push:
-    branches: ["main","dev"]
+    branches: ["main"]
   workflow_dispatch:
     inputs:
       target_env:
@@ -13,6 +13,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: web-ci-cd-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -54,6 +58,7 @@ jobs:
       - name: Determine target env
         id: env
         run: |
+          set -euo pipefail
           if [ "${{ github.event_name }}" = "push" ]; then
             echo "TARGET_ENV=dev" >> "$GITHUB_OUTPUT"
             echo "TARGET_DOMAIN=dev.juriscope.trustena.lu" >> "$GITHUB_OUTPUT"
