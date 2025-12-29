@@ -1,0 +1,122 @@
+name: web-ci-cd
+
+on:
+  push:
+    branches: ["dev"]
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: "Environment to deploy"
+        required: true
+        type: choice
+        options: [test, prod]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.meta.outputs.sha }}
+      artifact_name: ${{ steps.meta.outputs.artifact_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Meta
+        id: meta
+        run: |
+          echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=dist-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.artifact_name }}
+          path: dist
+          retention-days: 7
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine target env
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "TARGET_ENV=dev" >> "$GITHUB_OUTPUT"
+            echo "TARGET_DOMAIN=dev.juriscope.trustena.lu" >> "$GITHUB_OUTPUT"
+          else
+            echo "TARGET_ENV=${{ inputs.target_env }}" >> "$GITHUB_OUTPUT"
+            if [ "${{ inputs.target_env }}" = "test" ]; then
+              echo "TARGET_DOMAIN=test.juriscope.trustena.lu" >> "$GITHUB_OUTPUT"
+            else
+              echo "TARGET_DOMAIN=juriscope.trustena.lu" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+          path: dist
+
+      - name: Upload dist via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "dist/*"
+          target: "/tmp/juriscope-web-${{ steps.env.outputs.TARGET_ENV }}-${{ needs.build.outputs.sha }}/"
+          strip_components: 1
+          overwrite: true
+
+      - name: Finalize deploy (atomic switch + env.js + smoke)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -euo pipefail
+            ENV="${{ steps.env.outputs.TARGET_ENV }}"
+            DOMAIN="${{ steps.env.outputs.TARGET_DOMAIN }}"
+            SHA="${{ needs.build.outputs.sha }}"
+
+            BASE="/var/www/juriscope/${ENV}"
+            REL="${BASE}/releases/${SHA}"
+            CUR="${BASE}/current"
+            STAGE="/tmp/juriscope-web-${ENV}-${SHA}"
+
+            sudo mkdir -p "${BASE}/releases" "${BASE}/shared"
+            sudo rm -rf "${REL}" || true
+            sudo mkdir -p "${REL}"
+
+            sudo cp -a "${STAGE}/." "${REL}/"
+
+            RUNTIME="/opt/mastermind/apps/juriscope/web-runtime/env.${ENV}.js"
+            test -f "${RUNTIME}"
+            sudo cp -a "${RUNTIME}" "${REL}/env.js"
+
+            sudo chown -R www-data:www-data "${BASE}"
+            sudo find "${REL}" -type d -exec chmod 755 {} \;
+            sudo find "${REL}" -type f -exec chmod 644 {} \;
+
+            sudo ln -sfn "${REL}" "${CUR}"
+            sudo rm -rf "${STAGE}" || true
+
+            curl -fsS "https://${DOMAIN}/" >/dev/null
