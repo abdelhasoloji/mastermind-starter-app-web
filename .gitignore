@@ -30,3 +30,6 @@ dist-ssr
 
 # allow committed example
 !.env.example
+
+# local backups
+.github/workflows/*.bak*
