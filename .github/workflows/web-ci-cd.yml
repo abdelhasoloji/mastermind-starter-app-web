@@ -119,4 +119,9 @@ jobs:
             sudo ln -sfn "${REL}" "${CUR}"
             sudo rm -rf "${STAGE}" || true
 
-            curl --http1.1 -fsS "https://${DOMAIN}/" >/dev/null
+            for i in {1..30}; do
+  curl --http1.1 -fsS "https:///" >/dev/null && \
+  curl --http1.1 -fsS "https:///env.js" >/dev/null && break
+  sleep 1
+done
+curl --http1.1 -fsS "https:///env.js" >/dev/null
