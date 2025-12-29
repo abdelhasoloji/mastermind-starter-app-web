@@ -3,6 +3,8 @@ import { checkSupabaseHealth } from "@/shared/supabase/health";
 import { env } from "@/shared/config/env";
 
 export function SupabaseHealthWidget() {
+  if (!import.meta.env.DEV) return null;
+
   const [sb, setSb] = useState<any>(null);
 
   useEffect(() => {
