@@ -22,7 +22,9 @@ import {
   type HealthCheckResult, 
   type WebhookTestResult 
 } from "@/services/n8nService";
-import { env } from "@/shared/config/env";
+
+const N8N_ENV = "dev";
+const N8N_DISPLAY_URL = "https://n8n.dev.juriscope.trustena.lu";
 
 type CheckHistoryItem = (HealthCheckResult | WebhookTestResult) & { type: "health" | "webhook" };
 
@@ -43,9 +45,11 @@ export default function N8nDevAdmin() {
   const performHealthCheck = useCallback(async () => {
     setIsCheckingHealth(true);
     try {
-      const result = await checkN8nHealth();
+      const result = await checkN8nHealth(N8N_ENV);
       setHealthStatus(result);
       addToHistory({ ...result, type: "health" });
+    } catch (err) {
+      console.error("[N8nDev] Health check error:", err);
     } finally {
       setIsCheckingHealth(false);
     }
@@ -54,17 +58,25 @@ export default function N8nDevAdmin() {
   const performWebhookTest = useCallback(async () => {
     setIsTestingWebhook(true);
     try {
-      const result = await testN8nWebhook();
+      const result = await testN8nWebhook(N8N_ENV);
       setWebhookStatus(result);
       addToHistory({ ...result, type: "webhook" });
+    } catch (err) {
+      console.error("[N8nDev] Webhook test error:", err);
     } finally {
       setIsTestingWebhook(false);
     }
   }, [addToHistory]);
 
-  // Auto-check on mount
+  // Auto-check on mount + auto-refresh every 30s
   useEffect(() => {
     performHealthCheck();
+
+    const interval = setInterval(() => {
+      performHealthCheck();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [performHealthCheck]);
 
   const formatTimestamp = (date: Date) => {
@@ -103,7 +115,7 @@ export default function N8nDevAdmin() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">n8n DEV – Status & Connectivity</h1>
-          <p className="text-muted-foreground font-mono text-sm">{env.n8nBaseUrl}</p>
+          <p className="text-muted-foreground font-mono text-sm">{N8N_DISPLAY_URL}</p>
         </div>
 
         {/* Status Cards */}
