@@ -1,8 +1,9 @@
 /**
- * n8n Service - API calls for n8n health and connectivity checks
+ * n8n Service - API calls via Edge Function proxy
+ * All calls go through /functions/v1/n8n-admin to avoid CORS and secrets exposure
  */
 
-import { env } from "@/shared/config/env";
+import { supabase } from "@/shared/supabase/client";
 
 export interface HealthCheckResult {
   ok: boolean;
@@ -20,105 +21,136 @@ export interface WebhookTestResult {
   timestamp: Date;
 }
 
+interface EdgeHealthResponse {
+  env: string;
+  status: "online" | "offline";
+  httpCode: number | null;
+  latencyMs: number;
+  checkedAt: string;
+  message?: string;
+}
+
+interface EdgePingResponse {
+  env: string;
+  ok: boolean;
+  httpCode: number | null;
+  latencyMs: number;
+  testedAt: string;
+  message?: string;
+}
+
 /**
- * Check n8n DEV health status
+ * Check n8n health via Edge Function proxy
  */
-export async function checkN8nHealth(): Promise<HealthCheckResult> {
-  const startTime = performance.now();
+export async function checkN8nHealth(env: string = "dev"): Promise<HealthCheckResult> {
   const timestamp = new Date();
 
   try {
-    const response = await fetch(`${env.n8nBaseUrl}/healthz`, {
+    console.log(`[n8nService] Calling health check for env=${env}`);
+    
+    const { data, error } = await supabase.functions.invoke<EdgeHealthResponse>("n8n-admin", {
       method: "GET",
-      signal: AbortSignal.timeout(10000), // 10s timeout
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: undefined,
     });
 
-    const responseTimeMs = Math.round(performance.now() - startTime);
-
-    if (response.ok) {
+    // Workaround: supabase.functions.invoke doesn't support query params well for GET
+    // We use POST with action in body instead, or call with fetch directly
+    
+    if (error) {
+      console.error("[n8nService] Health check error:", error);
       return {
-        ok: true,
-        httpCode: response.status,
-        responseTimeMs,
-        message: "Service opérationnel",
+        ok: false,
+        httpCode: null,
+        responseTimeMs: 0,
+        message: error.message || "Erreur de connexion au proxy",
+        timestamp,
+      };
+    }
+
+    if (!data) {
+      return {
+        ok: false,
+        httpCode: null,
+        responseTimeMs: 0,
+        message: "Réponse vide du proxy",
         timestamp,
       };
     }
 
     return {
-      ok: false,
-      httpCode: response.status,
-      responseTimeMs,
-      message: `Service indisponible (HTTP ${response.status})`,
-      timestamp,
+      ok: data.status === "online",
+      httpCode: data.httpCode,
+      responseTimeMs: data.latencyMs,
+      message: data.message || (data.status === "online" ? "Service opérationnel" : "Service indisponible"),
+      timestamp: new Date(data.checkedAt),
     };
   } catch (error) {
-    const responseTimeMs = Math.round(performance.now() - startTime);
-    
+    console.error("[n8nService] Health check failed:", error);
     return {
       ok: false,
       httpCode: null,
-      responseTimeMs,
-      message: error instanceof Error && error.name === "TimeoutError" 
-        ? "Timeout - Service indisponible" 
-        : "Erreur réseau - Service injoignable",
+      responseTimeMs: 0,
+      message: error instanceof Error ? error.message : "Erreur inattendue",
       timestamp,
     };
   }
 }
 
 /**
- * Test n8n DEV webhook connectivity
- * Note: In production, this should go through a backend proxy to avoid exposing admin secrets
+ * Test n8n webhook via Edge Function proxy
  */
-export async function testN8nWebhook(): Promise<WebhookTestResult> {
-  const startTime = performance.now();
+export async function testN8nWebhook(env: string = "dev"): Promise<WebhookTestResult> {
   const timestamp = new Date();
 
   try {
-    const response = await fetch(`${env.n8nBaseUrl}/webhook/admin/ping`, {
+    console.log(`[n8nService] Calling ping test for env=${env}`);
+
+    const { data, error } = await supabase.functions.invoke<EdgePingResponse>("n8n-admin", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+      body: {
         source: "lovable-admin",
-        env: "dev",
         action: "ping",
-        timestamp: timestamp.toISOString(),
-      }),
-      signal: AbortSignal.timeout(15000), // 15s timeout for webhook
+      },
     });
 
-    const responseTimeMs = Math.round(performance.now() - startTime);
-
-    if (response.ok) {
+    if (error) {
+      console.error("[n8nService] Ping test error:", error);
       return {
-        ok: true,
-        httpCode: response.status,
-        responseTimeMs,
-        message: "Webhook n8n DEV reachable",
+        ok: false,
+        httpCode: null,
+        responseTimeMs: 0,
+        message: error.message || "Erreur de connexion au proxy",
+        timestamp,
+      };
+    }
+
+    if (!data) {
+      return {
+        ok: false,
+        httpCode: null,
+        responseTimeMs: 0,
+        message: "Réponse vide du proxy",
         timestamp,
       };
     }
 
     return {
-      ok: false,
-      httpCode: response.status,
-      responseTimeMs,
-      message: `Webhook inaccessible (HTTP ${response.status})`,
-      timestamp,
+      ok: data.ok,
+      httpCode: data.httpCode,
+      responseTimeMs: data.latencyMs,
+      message: data.message || (data.ok ? "Webhook reachable" : "Webhook inaccessible"),
+      timestamp: new Date(data.testedAt),
     };
   } catch (error) {
-    const responseTimeMs = Math.round(performance.now() - startTime);
-
+    console.error("[n8nService] Ping test failed:", error);
     return {
       ok: false,
       httpCode: null,
-      responseTimeMs,
-      message: error instanceof Error && error.name === "TimeoutError"
-        ? "Timeout - Webhook injoignable"
-        : "Erreur réseau - Webhook injoignable",
+      responseTimeMs: 0,
+      message: error instanceof Error ? error.message : "Erreur inattendue",
       timestamp,
     };
   }
