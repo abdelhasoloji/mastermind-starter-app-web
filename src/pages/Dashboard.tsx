@@ -105,13 +105,17 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <Button variant="heroOutline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate("/consultation")}>
                 <MessageSquare className="w-5 h-5" />
                 <span>Nouvelle consultation IA</span>
               </Button>
-              <Button variant="heroOutline" className="h-auto py-4 flex-col gap-2">
+              <Button variant="heroOutline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate("/document-analysis")}>
                 <FileText className="w-5 h-5" />
+                <span>Analyse de document</span>
+              </Button>
+              <Button variant="outline" className="h-auto py-4 flex-col gap-2">
+                <Scale className="w-5 h-5" />
                 <span>Importer un document</span>
               </Button>
               <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate("/admin/n8n-dev")}>
