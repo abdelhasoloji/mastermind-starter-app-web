@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Consultation from "./pages/Consultation";
+import N8nDevAdmin from "./pages/admin/N8nDev";
 import NotFound from "./pages/NotFound";
 import { SupabaseHealthWidget } from "@/shared/supabase/widget";
 
@@ -38,6 +39,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Consultation />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/n8n-dev"
+              element={
+                <ProtectedRoute>
+                  <N8nDevAdmin />
                 </ProtectedRoute>
               }
             />

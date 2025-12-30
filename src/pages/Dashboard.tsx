@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Logo from "@/components/Logo";
-import { LogOut, User, FileText, Scale, MessageSquare, Settings } from "lucide-react";
+import { LogOut, User, FileText, Scale, MessageSquare, Settings, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -105,7 +105,7 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Button variant="heroOutline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate("/consultation")}>
                 <MessageSquare className="w-5 h-5" />
                 <span>Nouvelle consultation IA</span>
@@ -113,6 +113,10 @@ export default function Dashboard() {
               <Button variant="heroOutline" className="h-auto py-4 flex-col gap-2">
                 <FileText className="w-5 h-5" />
                 <span>Importer un document</span>
+              </Button>
+              <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => navigate("/admin/n8n-dev")}>
+                <Shield className="w-5 h-5" />
+                <span>Admin n8n DEV</span>
               </Button>
             </div>
           </CardContent>
