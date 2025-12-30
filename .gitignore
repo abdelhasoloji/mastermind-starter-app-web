@@ -33,3 +33,4 @@ dist-ssr
 
 # local backups
 .github/workflows/*.bak*
+public/env.js
